@@ -3,7 +3,7 @@
 - **Status**: `draft` | `preview` | `stable`
     - `draft`: Initial idea, under discussion.
     - `preview`: Feature-complete, seeking feedback and early adoption.
-    - `stable`: Widely adopted, considered finalized.
+    - `stable`: Сonsidered finalized. At least one implementation available.
 - **Authors**:
     - [Author Name 1](link to profile)
     - [Author Name 2](link to profile)
