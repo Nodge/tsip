@@ -104,21 +104,21 @@ interface BaseErrorConstructor {
 
 ## Rationale
 
-**Inheritance from the Native Error Class**
+### Inheritance from the Native Error Class
 
 Extending the native `Error` class ensures that `BaseError` objects inherently include a stack trace, a critical component for debugging and pinpointing the origin of an error. This approach also allows existing JavaScript code to interact seamlessly with these custom errors, for example, by using `instanceof` checks or utility functions like `Error.isError()`.
 
-**Creating Subclasses from BaseError**
+### Creating Subclasses from BaseError
 
 Subclassing `BaseError` empowers developers to add semantic meaning and enforce strong typing for additional error metadata. This practice leads to clearer, more maintainable code and facilitates enhanced tooling support (e.g., autocompletion and type checking in IDEs).
 
-**Adding the `additional` Property**
+### Adding the `additional` Property
 
 The error object serves as a comprehensive container for all information relevant to diagnosing and logging an error. Frequently, the stack trace and message alone are insufficient for thorough analysis. Therefore, the capability to store supplementary context (such as request IDs, user information, or operational details) is crucial for effective error handling.
 
 Often, such supplementary information is transmitted directly to the error logging system. However, this direct transmission is not always feasible, as the point where an error originates and the point where it is logged can be decoupled. Consequently, embedding additional information within the error instance at the time of its creation is highly advantageous, as all necessary contextual data is typically available at that moment.
 
-**Adding the `fingerprint` Property**
+### Adding the `fingerprint` Property
 
 TODO
 

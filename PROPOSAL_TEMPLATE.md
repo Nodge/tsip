@@ -68,10 +68,9 @@ export interface MyNewInterface {
 
 (Explain the key design decisions made in this proposal. Why were certain choices made over alternatives? What trade-offs were considered? This section helps others understand the thinking behind the proposal.)
 
-- **Decision 1**: [Description of decision]
-    - **Reason**: [Why this was chosen]
-    - **Alternatives Considered**: [Alternative A, Alternative B]
-- **Decision 2**: ...
+### [Description of decision]
+
+[Why this was chosen]
 
 ## Dependency Injection Tokens (if applicable)
 

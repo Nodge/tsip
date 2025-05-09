@@ -91,13 +91,13 @@ interface ErrorLogger {
 
 ## Rationale
 
-**Parameter Type (`Error` instance only)**
+### Parameter Type (`Error` instance only)
 
 Accepting only `Error` instances ensures that a stack trace is available for every logged error. Stack traces are crucial for debugging and identifying the source of an error. Accepting `unknown[]` arguments (like `console.*` methods) would complicate standardized logging and make it harder to guarantee the presence of essential diagnostic information for monitoring systems.
 
 Allowing `unknown` or `any` as input would shift the burden of ensuring an `Error` object and extracting a stack trace to the logger implementation, potentially leading to inconsistencies.
 
-**Handling `unknown` errors at catch sites**
+### Handling `unknown` errors at catch sites
 
 In `catch` blocks, the caught error is typed as `unknown`. It's not recommended to blindly cast this to `Error` because the actual thrown value might not be an `Error` instance. Instead, developers should either:
 
@@ -106,7 +106,7 @@ In `catch` blocks, the caught error is typed as `unknown`. It's not recommended 
 
 This promotes robust error handling and ensures the `ErrorLogger` always receives a valid `Error` object.
 
-**Separation of Concerns (`ErrorLogger` vs. `BaseError`)**
+### Separation of Concerns (`ErrorLogger` vs. `BaseError`)
 
 The design of `ErrorLogger` deliberately separates the responsibilities of error handling into distinct stages to promote clarity and maintainability. Error creation and the addition of specific contextual details are best handled within the application code, precisely where an error originates. This is where an error instance, such as one derived from `BaseError` (as proposed in [TSIP-01](./TSIP-01%20BaseError.md)), takes on the role of a data container, collecting and storing all relevant information pertinent to that specific error event.
 
@@ -129,11 +129,11 @@ graph TD
     C -- Transports to --> F[Other Destinations];
 ```
 
-**Exclusion of `debug`, `log`, `trace` methods**
+### Exclusion of `debug`, `log`, `trace` methods
 
 The `ErrorLogger` interface is specifically focused on logging _errors_, particularly for integration with monitoring systems. Methods like `debug`, `log`, and `trace` typically have different semantics and are used for logging debugging information, application events, or other non-error data. Including them would dilute the purpose of `ErrorLogger`. A separate specific logger interface could be defined for those needs.
 
-**Synchronous Logging Methods**
+### Synchronous Logging Methods
 
 Although logging to external systems (like monitoring services) often involves I/O operations and is inherently asynchronous, the `ErrorLogger` methods are defined as synchronous (returning `void`). This is intentional to prevent logging operations from blocking or delaying the application's primary business logic. The logger implementation is responsible for managing any asynchronous operations internally (e.g., using a queue, fire-and-forget).
 
