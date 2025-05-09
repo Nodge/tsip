@@ -4,15 +4,15 @@
 - **Authors**:
     - [Maksim Zemskov](https://github.com/nodge)
 - **Created**: 2025-05-07
-- **Updated**: 2025-05-07
+- **Updated**: 2025-05-09
 
 ## Abstract
 
-This proposal introduces a `BaseError` interface and class for TypeScript/JavaScript, designed to extend the native `Error` class with support for additional, strongly-typed contextual information. The goal is to provide a standardized way for libraries and applications to enrich error objects with extra data, improving error handling, diagnostics, and logging across the ecosystem.
+This proposal introduces a `BaseError` interface for TypeScript/JavaScript. It's designed to extend the native `Error` class by adding support for strongly-typed contextual information. The primary goal is to offer a standardized method for libraries and applications to augment error objects with additional data, thereby enhancing error handling, diagnostics, and logging.
 
 ## Motivation
 
-The native `Error` class in JavaScript/TypeScript is limited in its ability to carry contextual information beyond a message and stack trace. In real-world applications, developers often need to attach additional data to errors for better diagnostics, logging, and automated handling. This leads to ad-hoc solutions and inconsistent error structures across codebases.
+The native `Error` class in JavaScript/TypeScript offers limited capabilities for conveying contextual information beyond a simple message and stack trace. In practice, developers frequently need to append supplementary data to errors to improve diagnostics, logging, and automated error-handling processes. The absence of a standardized approach often results in ad-hoc solutions and inconsistent error structures across different codebases.
 
 ## Design Goals
 
@@ -20,53 +20,132 @@ The native `Error` class in JavaScript/TypeScript is limited in its ability to c
 
 - Allow errors to carry structured, strongly-typed metadata.
 - Make it easier to create error subclasses for specific domains.
-- Ensuring backward compatibility with existing error handling mechanisms.
-- Facilitating better integration with logging and monitoring tools.
+- Ensure backward compatibility with existing error handling mechanisms.
+- Facilitate better integration with logging and monitoring tools.
 
 ### Non-Goals
 
-- Out-of-the-box support for error serialization. Serialization requirements vary widely, and deserialization mechanisms are often application-specific and cannot be standardized here.
-- Providing a set of predefined error subclasses for various scenarios. This is the responsibility of libraries or applications; the base class should be sufficient for general use.
-- Normalizing stack traces or messages from native errors. Such normalization can add significant complexity and increase bundle size of interface implementations and is better handled server-side at the logging or reporting stage if needed.
+- Provide out-of-the-box support for error serialization. Serialization requirements vary widely, and deserialization mechanisms are often application-specific, making standardization in this context impractical.
+- Provide a set of predefined error subclasses for various scenarios. This responsibility lies with individual libraries or applications; the `BaseError` class is intended to be a general-purpose foundation.
+- Normalize stack traces or messages from native errors. Such normalization can introduce significant complexity, increase the bundle size of interface implementations, and is more effectively handled server-side during logging or reporting if required.
 
 ## Guidance
 
 - The `BaseError` class must extend the native `Error` class.
 - `BaseError` must accept `message` and `cause` parameters, similar to the native `Error`.
-- `BaseError` must accept additional parameters, which can be strongly typed in subclasses.
-- `BaseError` must provide the `extend` method to create error subclasses for specific domains.
+- `BaseError` must accept additional parameters, which can be strongly typed within its subclasses.
+- `BaseError` must accept an optional `fingerprint` string parameter for unique error instance identification.
+- `BaseError` must provide an `extend` method to facilitate the creation of error subclasses tailored to specific domains.
 - The `extend` method must accept a name and return a new class with the given name.
 
 ## TypeScript Definitions
 
 ```typescript
 /**
+ * BaseError class instance with additional metadata
+ */
+interface BaseError<T = unknown> extends Error {
+    /**
+     * Contains additional structured, strongly-typed metadata associated with the error.
+     */
+    readonly additional: T;
+
+    /**
+     * An optional, unique identifier for this error instance.
+     * This identifier can be utilized for grouping similar errors within logging and monitoring systems.
+     * For instance, it could be a hash generated from the error message and the primary stack frame,
+     * or a predefined string representing a specific error category.
+     */
+    readonly fingerprint: string | undefined;
+}
+
+/**
  * Additional options passed to BaseError constructor
  */
 interface BaseErrorOptions<T> extends ErrorOptions {
     /**
-     * Additional structured, strongly-typed metadata
+     * Optional additional structured, strongly-typed metadata associated with the error.
      */
     additional?: T;
+
+    /**
+     * An optional, unique identifier for this error instance.
+     * This identifier can be utilized for grouping similar errors within logging and monitoring systems.
+     * For instance, it could be a hash generated from the error message and the primary stack frame,
+     * or a predefined string representing a specific error category.
+     */
+    fingerprint?: string;
 }
 
-class BaseError<T = unknown> extends Error {
-    public readonly additional: T;
+/**
+ * Defines the constructor for the BaseError class and its static `extend` method.
+ * This interface ensures that any class implementing or representing `BaseError`
+ * offers a consistent mechanism for instantiation and extension.
+ */
+interface BaseErrorConstructor {
+    /**
+     * Creates an instance of BaseError.
+     * @typeParam T The type of the `additional` metadata.
+     * @param message A human-readable description of the error.
+     * @param options Additional options for the error, encompassing `cause`, `additional` metadata, and `fingerprint`.
+     * @returns A new `BaseError` instance.
+     */
+    new <T>(message?: string, options?: BaseErrorOptions<T>): BaseError<T>;
 
-    constructor(message: string, options?: BaseErrorOptions<T>) {
+    /**
+     * Creates a new error class that implements `BaseError`, featuring a specific name and metadata type.
+     * @typeParam T The type definition for the `additional` metadata.
+     * @param name The designated name for the new error class.
+     * @returns A new error class that implements `BaseError`.
+     */
+    extend<T>(name: string): new (message: string, options?: BaseErrorOptions<T>) => BaseError<T>;
+}
+```
+
+## Rationale
+
+**Inheritance from the Native Error Class**
+
+Extending the native `Error` class ensures that `BaseError` objects inherently include a stack trace, a critical component for debugging and pinpointing the origin of an error. This approach also allows existing JavaScript code to interact seamlessly with these custom errors, for example, by using `instanceof` checks or utility functions like `Error.isError()`.
+
+**Creating Subclasses from BaseError**
+
+Subclassing `BaseError` empowers developers to add semantic meaning and enforce strong typing for additional error metadata. This practice leads to clearer, more maintainable code and facilitates enhanced tooling support (e.g., autocompletion and type checking in IDEs).
+
+**Adding the `additional` Property**
+
+The error object serves as a comprehensive container for all information relevant to diagnosing and logging an error. Frequently, the stack trace and message alone are insufficient for thorough analysis. Therefore, the capability to store supplementary context (such as request IDs, user information, or operational details) is crucial for effective error handling.
+
+Often, such supplementary information is transmitted directly to the error logging system. However, this direct transmission is not always feasible, as the point where an error originates and the point where it is logged can be decoupled. Consequently, embedding additional information within the error instance at the time of its creation is highly advantageous, as all necessary contextual data is typically available at that moment.
+
+**Adding the `fingerprint` Property**
+
+TODO
+
+## Adoption Guide
+
+### Implementing the Interface
+
+Library authors can implement the `BaseError` interface as demonstrated in the example above. A library is free to introduce additional capabilities, provided they do not conflict with or alter the proposed behavior of `BaseError` and `BaseErrorContructor`.
+
+```typescript
+class BaseErrorImpl<T> extends Error implements BaseError<T> {
+    public readonly additional: T;
+    public readonly fingerprint: string | undefined;
+
+    constructor(message?: string | undefined, options?: BaseErrorOptions<T>) {
         super(message, { cause: options?.cause });
+
+        this.name = 'BaseError';
         this.additional = options?.additional as T;
+        this.fingerprint = options?.fingerprint;
+
         Object.setPrototypeOf(this, new.target.prototype);
     }
 
-    /**
-     * Creates a new error class extending BaseError with a specific name and type
-     * @param name The name of the new error class
-     * @returns A new error class extending BaseError
-     */
-    static extend<T>(name: string): new (message: string, options?: BaseErrorOptions<T>) => BaseError<T> {
-        const ErrorClass = class extends BaseError<T> {
-            constructor(message: string, options?: BaseErrorOptions<T>) {
+    public static extend<T>(name: string) {
+        const ErrorClass = class extends BaseErrorImpl<T> {
+            constructor(message?: string | undefined, options?: BaseErrorOptions<T>) {
                 super(message, options);
                 this.name = name;
             }
@@ -77,39 +156,17 @@ class BaseError<T = unknown> extends Error {
 }
 ```
 
-## Rationale
-
-**Inheritance from the Native Error Class**
-
-Extending the native `Error` class ensures that error objects include a stack trace, which is critical for debugging and understanding where an error occurred. It also allows existing code to work seamlessly with these errors using `instanceof` checks or utility functions like `Error.isError()`.
-
-**Creating Subclasses from BaseError**
-
-Subclassing `BaseError` allows developers to add semantic meaning to errors and enforce strong typing for additional parameters. This leads to clearer, more maintainable code and enables better tooling support.
-
-**Adding the `additional` Property**
-
-The error object acts as a container for all information relevant to diagnosing and logging the error. Often, the stack trace and message are insufficient, so the ability to store extra context (such as request IDs, user info, or operation details) is essential for effective error handling.
-
-Often, such additional information is passed directly to the error logging system. However, this is not always possible since in many cases, the location where the error occurs and the location where it is logged are not directly connected. Therefore, it is convenient to add additional information to the error instance at the moment of its creation, as at this point there is access to all necessary data.
-
-## Adoption Guide
-
-### Implementing the Interface
-
-Library authors can implement the `BaseError` interface and class as shown above. A library may add additional capabilities as long as they do not violate the proposed behavior.
-
-```typescript
-class CoolError<T> extends Error implements BaseError<T> {
-    //...
-}
-```
-
 ### Consuming the Interface
 
 ```typescript
-function handleError(error: BaseError<any>) {
-    console.error(error.message, error.additional);
+function handleError(error: BaseError) {
+    console.error({
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+        additional: error.additional,
+    });
+
     if (error.cause) {
         console.error('Caused by:', error.cause);
     }
@@ -130,20 +187,33 @@ interface NetworkErrorDetails {
 const NetworkError = BaseError.extend<NetworkErrorDetails>('NetworkError');
 ```
 
+### Example: Ensuring error instance in try-catch blocks
+
+```typescript
+try {
+    throw 'Missing file path.';
+} catch (error) {
+    // Normalized from a string to a `BaseError` instance
+    throw new BaseErrorImpl('Failed due to an unexpected issue.', {
+        cause: error,
+    });
+}
+```
+
 ## FAQ (Frequently Asked Questions)
 
 - **Q: Why not just use the native Error class?**
 
-    - A: The native Error class does not support structured metadata, making it difficult to attach and retrieve contextual information needed for diagnostics and logging.
+    - A: The native `Error` class lacks built-in support for structured metadata. This limitation makes it difficult to attach and subsequently retrieve the rich contextual information often required for comprehensive diagnostics and effective logging.
 
 - **Q: Is this compatible with existing error handling code?**
-    - A: Yes. `BaseError` extends the native `Error` class, so it works with `instanceof` checks and standard error handling patterns.
+    - A: Yes. Since `BaseError` extends the native `Error` class, it remains compatible with existing error handling mechanisms, including `instanceof` checks and standard error handling patterns.
 
 ## Unresolved Questions / Future Considerations
 
 - Should we provide utility functions for serialization/deserialization?
 - Should we standardize error codes or categories?
-- Should we support typescript targets lower than ES2022? It requires polyfilling the `cause` option.
+- Should we support TypeScript targets older than ES2022? Supporting older targets would necessitate polyfilling the `cause` property for `Error` objects.
 
 ## Prior Art / References
 
