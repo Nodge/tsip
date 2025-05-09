@@ -120,7 +120,14 @@ Often, such supplementary information is transmitted directly to the error loggi
 
 ### Adding the `fingerprint` Property
 
-TODO
+The `fingerprint` property provides a unique identifier for an error instance. This is particularly useful in monitoring and logging systems for grouping similar errors, which simplifies their analysis and tracking. For example, a `fingerprint` could be a hash generated from the error message and the primary stack frame, or a predefined string representing a specific error category.
+
+Using `fingerprint` allows for:
+
+- **Error Grouping**: Monitoring systems can use the `fingerprint` to consolidate identical or similar errors, even if they occur in different parts of the application or at different times. This helps in assessing the frequency and impact of a specific issue.
+- **Error Deduplication**: Prevents multiple alerts for the same error, reducing informational noise.
+- **Rate Limiting**: Enables setting notification limits for each error group (identified by `fingerprint`) to avoid overwhelming the alert system.
+- **Implementing Specific Error Handling Patterns**: For instance, automatically assigning priority or an owner for fixing a group of errors.
 
 ## Adoption Guide
 
