@@ -43,7 +43,7 @@ graph TD
     B --> D{Implementation B};
 ```
 
-## TypeScript Interface Definitions
+## TypeScript Definitions
 
 (Provide the complete TypeScript code for the interface(s) being proposed. Ensure it's well-documented.)
 

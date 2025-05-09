@@ -126,7 +126,7 @@ TODO
 
 ### Implementing the Interface
 
-Library authors can implement the `BaseError` interface as demonstrated in the example above. A library is free to introduce additional capabilities, provided they do not conflict with or alter the proposed behavior of `BaseError` and `BaseErrorContructor`.
+Library authors can implement the `BaseError` interface as demonstrated in the example below. A library is free to introduce additional capabilities, provided they do not conflict with or alter the proposed behavior of `BaseError` and `BaseErrorContructor`.
 
 ```typescript
 class BaseErrorImpl<T> extends Error implements BaseError<T> {
@@ -158,6 +158,8 @@ class BaseErrorImpl<T> extends Error implements BaseError<T> {
 
 ### Consuming the Interface
 
+Applications can use an `BaseError` instance (obtained via dependency injection or direct instantiation) to handle errors.
+
 ```typescript
 function handleError(error: BaseError) {
     console.error({
@@ -171,6 +173,15 @@ function handleError(error: BaseError) {
         console.error('Caused by:', error.cause);
     }
 }
+```
+
+Applications can use an `BaseErrorConstructor` class to create errors.
+
+```typescript
+throw new BaseError('Something happened', {
+    additional: { foo: 'bar' },
+    fingerprint: 'example',
+});
 ```
 
 ### Example: Creating Custom Error Subclasses
