@@ -147,10 +147,10 @@ Library authors can implement the `ErrorLogger` interface as demonstrated in the
 
 ```typescript
 const errorLogger: ErrorLogger = {
-    info: err => console.info(err),
-    warn: err => console.warn(err),
-    error: err => console.error(err),
-    fatal: err => console.error(err),
+    info: (err) => console.info(err),
+    warn: (err) => console.warn(err),
+    error: (err) => console.error(err),
+    fatal: (err) => console.error(err),
 };
 ```
 
@@ -163,7 +163,7 @@ try {
     // ... application logic ...
 } catch (err) {
     // Ensure 'err' is an Error instance before logging
-    const normalizedError = err instanceof Error ? err : new Error('Unknown error', { cause: err });
+    const normalizedError = err instanceof Error ? err : new Error("Unknown error", { cause: err });
 
     // Log error with ERROR severity
     errorLogger.error(normalizedError);
@@ -173,15 +173,12 @@ try {
 ## FAQ (Frequently Asked Questions)
 
 - **Q: Can I use this for general application logging (e.g., debug messages)?**
-
     - A: This interface is specifically designed for error logging. For general-purpose logging (debug, info events, traces), a different logging interface would be more appropriate.
 
 - **Q: Why are the logging methods synchronous? Shouldn't I/O operations be asynchronous?**
-
     - A: The interface methods are synchronous to avoid complicating application logic with `async/await` for logging calls and to prevent logging from blocking critical paths. The _implementation_ of the `ErrorLogger` is responsible for handling any asynchronous I/O (e.g., sending logs over the network) in a non-blocking way, perhaps by using an internal queue or fire-and-forget strategy.
 
 - **Q: How does this relate to `BaseError` (TSIP-01)?**
-
     - A: `BaseError` focuses on standardizing the structure of error objects themselves, allowing them to carry rich contextual information. `ErrorLogger` provides a standard way to _consume_ these (and other) `Error` objects for reporting purposes. They are complementary: `BaseError` helps create informative errors, and `ErrorLogger` helps report them consistently.
 
 ## Unresolved Questions / Future Considerations
