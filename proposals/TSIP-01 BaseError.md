@@ -143,7 +143,7 @@ class BaseErrorImpl<T> extends Error implements BaseError<T> {
     constructor(message?: string | undefined, options?: BaseErrorOptions<T>) {
         super(message, { cause: options?.cause });
 
-        this.name = 'BaseError';
+        this.name = "BaseError";
         this.additional = options?.additional as T;
         this.fingerprint = options?.fingerprint;
 
@@ -177,7 +177,7 @@ function handleError(error: BaseError) {
     });
 
     if (error.cause) {
-        console.error('Caused by:', error.cause);
+        console.error("Caused by:", error.cause);
     }
 }
 ```
@@ -185,16 +185,16 @@ function handleError(error: BaseError) {
 Applications can use an `BaseErrorConstructor` class to create errors.
 
 ```typescript
-throw new BaseError('Something happened', {
-    additional: { foo: 'bar' },
-    fingerprint: 'example',
+throw new BaseError("Something happened", {
+    additional: { foo: "bar" },
+    fingerprint: "example",
 });
 ```
 
 ### Example: Creating Custom Error Subclasses
 
 ```typescript
-const UnexpectedError = BaseError.extend<undefined>('UnexpectedError');
+const UnexpectedError = BaseError.extend<undefined>("UnexpectedError");
 
 interface NetworkErrorDetails {
     request: Request;
@@ -202,17 +202,17 @@ interface NetworkErrorDetails {
     response?: Response | undefined;
 }
 
-const NetworkError = BaseError.extend<NetworkErrorDetails>('NetworkError');
+const NetworkError = BaseError.extend<NetworkErrorDetails>("NetworkError");
 ```
 
 ### Example: Ensuring error instance in try-catch blocks
 
 ```typescript
 try {
-    throw 'Missing file path.';
+    throw "Missing file path.";
 } catch (error) {
     // Normalized from a string to a `BaseError` instance
-    throw new BaseErrorImpl('Failed due to an unexpected issue.', {
+    throw new BaseErrorImpl("Failed due to an unexpected issue.", {
         cause: error,
     });
 }
@@ -221,7 +221,6 @@ try {
 ## FAQ (Frequently Asked Questions)
 
 - **Q: Why not just use the native Error class?**
-
     - A: The native `Error` class lacks built-in support for structured metadata. This limitation makes it difficult to attach and subsequently retrieve the rich contextual information often required for comprehensive diagnostics and effective logging.
 
 - **Q: Is this compatible with existing error handling code?**

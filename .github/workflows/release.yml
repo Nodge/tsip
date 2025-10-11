@@ -1,0 +1,44 @@
+name: Release
+
+on:
+    push:
+        branches:
+            - main
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+    release:
+        name: Release
+        # prevents this action from running on forks
+        if: github.repository == 'nodge/ts-interface-proposals'
+        permissions:
+            contents: write # to create release
+            issues: write # to post issue comments
+            pull-requests: write # to create pull request
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - name: Install pnpm
+              uses: pnpm/action-setup@v4
+              with:
+                  run_install: false
+            - name: Install Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+                  cache: "pnpm"
+            - name: Install dependencies
+              run: pnpm install
+            - name: Create Release PR or Publish to npm
+              id: changesets
+              uses: changesets/action@v1
+              with:
+                  title: "Upcoming Release"
+                  commit: "chore(release): version bump"
+                  version: pnpm exec changeset version
+                  publish: pnpm run build && pnpm exec changeset publish
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

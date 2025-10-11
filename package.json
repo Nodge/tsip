@@ -1,0 +1,71 @@
+{
+    "name": "@tsip/types",
+    "version": "0.0.1",
+    "description": "Curated collection of TypeScript interface proposals for common functionalities, promoting code reusability, interoperability, and best practices across the ecosystem",
+    "keywords": [
+        "typescript",
+        "interfaces",
+        "types",
+        "proposals",
+        "standardization",
+        "abstractions",
+        "interoperability",
+        "reusability",
+        "best-practices"
+    ],
+    "author": "Maksim Zemskov <maxaz74@gmail.com>",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/Nodge/ts-interface-proposals/issues"
+    },
+    "homepage": "https://github.com/Nodge/ts-interface-proposals/",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/Nodge/ts-interface-proposals.git"
+    },
+    "engines": {
+        "node": ">=18"
+    },
+    "packageManager": "pnpm@10.18.2",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        "./package.json": "./package.json",
+        ".": {
+            "import": {
+                "types": "./dist/index.d.mts",
+                "default": "./dist/index.mjs"
+            },
+            "default": {
+                "types": "./dist/index.d.ts",
+                "default": "./dist/index.js"
+            }
+        }
+    },
+    "files": [
+        "README.md",
+        "CHANGELOG.md",
+        "LICENSE",
+        "dist"
+    ],
+    "sideEffects": false,
+    "scripts": {
+        "build": "tsup",
+        "lint": "eslint .",
+        "fmt": "prettier --write . --log-level error",
+        "typecheck": "tsc --noEmit",
+        "changeset": "changeset add"
+    },
+    "devDependencies": {
+        "@changesets/changelog-github": "0.5.1",
+        "@changesets/cli": "2.29.7",
+        "@eslint/js": "9.36.0",
+        "@types/eslint": "9.6.1",
+        "eslint": "9.36.0",
+        "lefthook": "1.13.4",
+        "prettier": "3.6.2",
+        "tsup": "8.5.0",
+        "typescript": "5.9.2",
+        "typescript-eslint": "8.44.1"
+    }
+}
