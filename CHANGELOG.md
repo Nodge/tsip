@@ -1,5 +1,11 @@
 # @tsip/types
 
+## 0.2.0
+
+### Minor Changes
+
+- [#6](https://github.com/Nodge/ts-interface-proposals/pull/6) [`6b52293`](https://github.com/Nodge/ts-interface-proposals/commit/6b52293c1b44984da6d2058a847ad97bdb88e85e) Thanks [@Nodge](https://github.com/Nodge)! - Add types for the upcoming Flow interface proposal. Introduces `Flow`, `MutableFlow`, `AsyncFlow`, `MutableAsyncFlow`, `AsyncFlowState`, and `FlowSubscription` types to support reactive data flow patterns.
+
 ## 0.1.0
 
 ### Minor Changes
