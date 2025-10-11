@@ -54,7 +54,8 @@
         "lint": "eslint .",
         "fmt": "prettier --write . --log-level error",
         "typecheck": "tsc --noEmit",
-        "changeset": "changeset add"
+        "changeset": "changeset add",
+        "ci:release": "pnpm run build && pnpm exec changeset publish"
     },
     "devDependencies": {
         "@changesets/changelog-github": "0.5.1",
