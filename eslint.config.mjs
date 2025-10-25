@@ -10,7 +10,7 @@ export default defineConfig(
         languageOptions: {
             parserOptions: {
                 projectService: true,
-                tsconfigRootDir: String(import.meta.dirname),
+                tsconfigRootDir: import.meta.dirname,
             },
         },
     },
