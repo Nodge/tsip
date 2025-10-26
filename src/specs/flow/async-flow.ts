@@ -182,3 +182,39 @@ export interface MutableAsyncFlow<Data> extends AsyncFlow<Data> {
      */
     asFlow(): AsyncFlow<Data>;
 }
+
+/**
+ * Utility type that extracts the data type from an AsyncFlow.
+ *
+ * This is useful for working with AsyncFlow types in generic contexts where you need to
+ * extract the underlying data type.
+ *
+ * @typeParam T - An AsyncFlow type
+ * @returns The data type of the flow
+ *
+ * @remarks
+ * This type intentionally uses structural typing (`{ getSnapshot(): infer S }`) instead of
+ * directly inferring from `AsyncFlow<infer D>`. This approach works around TypeScript's
+ * behavior with widening types from generic type parameters, particularly when the type is
+ * structurally the same, but defined multiple times in different libraries.
+ * See https://tsplay.dev/wXMMON
+ *
+ * @example
+ * ```typescript
+ * type MyFlow = AsyncFlow<{ id: number; name: string }>;
+ * type UserData = InferAsyncFlowValue<MyFlow>;
+ * // UserData is { id: number; name: string }
+ *
+ * // Works with MutableAsyncFlow as well
+ * type MyMutableFlow = MutableAsyncFlow<boolean>;
+ * type BooleanType = InferAsyncFlowValue<MyMutableFlow>; // boolean
+ * ```
+ */
+export type InferAsyncFlowValue<T> =
+    T extends AsyncFlow<unknown>
+        ? T extends { getSnapshot(): infer S }
+            ? S extends { status: "success"; data: infer D }
+                ? D
+                : never
+            : never
+        : never;

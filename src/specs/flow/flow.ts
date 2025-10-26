@@ -117,3 +117,27 @@ export interface MutableFlow<Data> extends Flow<Data> {
      */
     asFlow(): Flow<Data>;
 }
+
+/**
+ * Utility type that extracts the data type from a Flow.
+ *
+ * This is useful for working with Flow types in generic
+ * contexts where you need to extract the underlying data type.
+ *
+ * @typeParam T - A Flow type
+ * @returns The data type of the flow
+ *
+ * @example
+ * ```typescript
+ * const numberFlow: Flow<number> = createFlow(42);
+ * type NumberType = InferFlowValue<typeof numberFlow>; // number
+ *
+ * const stringFlow: Flow<string> = createFlow('hello');
+ * type StringType = InferFlowValue<typeof stringFlow>; // string
+ *
+ * // Works with MutableFlow as well
+ * const mutableFlow: MutableFlow<boolean> = createFlow(true);
+ * type BooleanType = InferFlowValue<typeof mutableFlow>; // boolean
+ * ```
+ */
+export type InferFlowValue<T> = T extends Flow<infer D> ? D : never;
