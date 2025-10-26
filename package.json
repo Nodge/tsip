@@ -1,6 +1,6 @@
 {
     "name": "@tsip/types",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "description": "Curated collection of TypeScript interfaces for common functionalities, promoting code reusability, interoperability, and best practices across the ecosystem",
     "keywords": [
         "typescript",
