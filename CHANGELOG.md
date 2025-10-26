@@ -1,5 +1,27 @@
 # @tsip/types
 
+## 0.4.0
+
+### Minor Changes
+
+- [#10](https://github.com/Nodge/tsip/pull/10) [`26cd959`](https://github.com/Nodge/tsip/commit/26cd959cacbfa92fa82cf37ea278c6570496bc9c) Thanks [@Nodge](https://github.com/Nodge)! - Add utility types for extracting data types from Flow and AsyncFlow
+
+  Introduces two new utility types:
+  - `InferFlowValue<T>`: Extracts the data type from a `Flow<Data>` or `MutableFlow<Data>`
+  - `InferAsyncFlowValue<T>`: Extracts the data type from an `AsyncFlow<Data>` or `MutableAsyncFlow<Data>`
+
+  These types are useful for working with Flow types in generic contexts where you need to extract the underlying data type without knowing it in advance.
+
+  **Example:**
+
+  ```typescript
+  type MyFlow = Flow<{ id: number; name: string }>;
+  type UserData = InferFlowValue<MyFlow>; // { id: number; name: string }
+
+  type MyAsyncFlow = AsyncFlow<boolean>;
+  type BooleanType = InferAsyncFlowValue<MyAsyncFlow>; // boolean
+  ```
+
 ## 0.3.0
 
 ### Minor Changes
