@@ -1,7 +1,7 @@
 {
     "name": "@tsip/types",
     "version": "0.2.0",
-    "description": "Curated collection of TypeScript interface proposals for common functionalities, promoting code reusability, interoperability, and best practices across the ecosystem",
+    "description": "Curated collection of TypeScript interfaces for common functionalities, promoting code reusability, interoperability, and best practices across the ecosystem",
     "keywords": [
         "typescript",
         "interfaces",
@@ -16,12 +16,12 @@
     "author": "Maksim Zemskov <maxaz74@gmail.com>",
     "license": "MIT",
     "bugs": {
-        "url": "https://github.com/Nodge/ts-interface-proposals/issues"
+        "url": "https://github.com/Nodge/tsip/issues"
     },
-    "homepage": "https://github.com/Nodge/ts-interface-proposals/",
+    "homepage": "https://github.com/Nodge/tsip/",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/Nodge/ts-interface-proposals.git"
+        "url": "git+https://github.com/Nodge/tsip.git"
     },
     "engines": {
         "node": ">=18"

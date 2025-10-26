@@ -1,6 +1,6 @@
 {
     "$schema": "https://unpkg.com/@changesets/config@3.0.2/schema.json",
-    "changelog": ["@changesets/changelog-github", { "repo": "nodge/ts-interface-proposals" }],
+    "changelog": ["@changesets/changelog-github", { "repo": "nodge/tsip" }],
     "commit": false,
     "fixed": [],
     "linked": [],
