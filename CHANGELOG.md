@@ -1,5 +1,18 @@
 # @tsip/types
 
+## 0.5.0
+
+### Minor Changes
+
+- [#13](https://github.com/Nodge/tsip/pull/13) [`32f4990`](https://github.com/Nodge/tsip/commit/32f4990f48ece195c5a1eaa4df14b8ba7004eed5) Thanks [@Nodge](https://github.com/Nodge)! - Add types for BaseError interface (TSIP-01)
+
+  This release introduces the `BaseError` interface, a TypeScript interface for creating structured, extensible error classes. The interface extends the native JavaScript `Error` class with support for strongly-typed metadata, error chaining via `cause`, and optional error grouping.
+
+  **Exported types:**
+  - `BaseError<Additional>` - Core interface for error instances with typed metadata
+  - `BaseErrorConstructor<Additional>` - Constructor interface with `extend()` method for creating error subclasses
+  - `BaseErrorOptions<Additional>` - Options interface for error construction
+
 ## 0.4.0
 
 ### Minor Changes
