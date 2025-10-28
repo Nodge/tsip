@@ -7,8 +7,6 @@
 - **Authors**:
     - [Author Name 1](link to profile)
     - [Author Name 2](link to profile)
-- **Created**: YYYY-MM-DD
-- **Updated**: YYYY-MM-DD
 
 ## Abstract
 
@@ -32,20 +30,9 @@
 - (e.g., This interface does not attempt to solve problem A.)
 - (e.g., Performance optimization beyond reasonable defaults is not a primary goal.)
 
-## Guidance
-
-(A detailed description of the proposed interface(s) and its components. Explain how it works, the concepts involved, and the expected behavior. Use diagrams if they help clarify complex interactions.)
-
-```mermaid
-graph TD
-    A[Client] --> B(Standardized Interface);
-    B --> C{Implementation A};
-    B --> D{Implementation B};
-```
-
 ## TypeScript Definitions
 
-(Provide the complete TypeScript code for the interface(s) being proposed. Ensure it's well-documented.)
+(Provide the complete TypeScript declarations for the interface(s) being proposed. Ensure it's well-documented.)
 
 ```typescript
 // Example:
@@ -64,6 +51,26 @@ export interface MyNewInterface {
 }
 ```
 
+## Behavioral Requirements
+
+(Specify the precise requirements that any implementation of this interface must satisfy. Use numbered lists for clarity. Include requirements about:
+
+- How the interface components must behave
+- Expected properties and their types
+- Method signatures and their behavior
+- Edge cases and error handling
+- Compatibility requirements)
+
+Example structure:
+
+1. **[Requirement Category]**: [Description of what MUST happen]
+    - Sub-requirement details
+    - Type-specific behaviors
+
+2. **[Another Category]**: [Description]
+    - When `TypeParam` is X: behavior MUST be Y
+    - Otherwise: behavior MUST be Z
+
 ## Rationale
 
 (Explain the key design decisions made in this proposal. Why were certain choices made over alternatives? What trade-offs were considered? This section helps others understand the thinking behind the proposal.)
@@ -72,43 +79,15 @@ export interface MyNewInterface {
 
 [Why this was chosen]
 
-## Dependency Injection Tokens (if applicable)
-
-(If the proposal involves or recommends specific Dependency Injection (DI) tokens for discoverability or extensibility, describe them here. Explain their purpose and how they should be used.)
-
-```typescript
-// Example:
-// export const MY_SERVICE_TOKEN = new InjectionToken<MyNewInterface>('MyServiceToken');
-```
-
 ## Adoption Guide
 
-### Implementing the Interface
+### Consuming the Interface in Libraries
 
-(Provide specific guidance for library authors who want to implement this interface. What are the key considerations? Are there any best practices they should follow?)
+(Explain how library authors can consume and use this interface. Include practical code examples showing different integration patterns.)
 
-```typescript
-// How a library or class would implement this interface
-class MyImplementation implements MyNewInterface {
-    property: string = "example";
+### Consuming the Interface in Application Code
 
-    method(param: number): boolean {
-        return param > 0;
-    }
-}
-```
-
-### Consuming the Interface
-
-```typescript
-// How a user or another part of an application would use an instance of this interface
-function processData(service: MyNewInterface) {
-    console.log(service.property);
-    if (service.method(10)) {
-        // ...
-    }
-}
-```
+(Explain how application developers can use this interface. Provide concrete examples of common use cases.)
 
 ## FAQ (Frequently Asked Questions)
 
@@ -132,7 +111,7 @@ function processData(service: MyNewInterface) {
 - [Link to related work 1]
 - [RFC or Standard X]
 
-## Compatible Implementations / Projects Using This Interface
+## Compatible Implementations
 
 (A list of known libraries, frameworks, or projects that have adopted, are compatible with, or are using this interface proposal. This helps users find real-world examples and encourages adoption.)
 
@@ -145,11 +124,3 @@ function processData(service: MyNewInterface) {
 
 - [Project 1](link) - (Brief description of how it uses the interface)
 - [Project 2](link)
-
-## Changelog
-
-All notable changes to this proposal will be documented in this section.
-
-### YYYY-MM-DD
-
-- [Description of change made]
