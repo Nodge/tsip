@@ -1,10 +1,8 @@
 # TSIP-01: BaseError Interface Proposal
 
-- **Status**: `draft` (Initial idea, under discussion)
+- **Status**: `preview`
 - **Authors**:
     - [Maksim Zemskov](https://github.com/nodge)
-- **Created**: 2025-05-07
-- **Updated**: 2025-05-09
 
 ## Abstract
 
@@ -28,15 +26,6 @@ The native `Error` class in JavaScript/TypeScript offers limited capabilities fo
 - Provide out-of-the-box support for error serialization. Serialization requirements vary widely, and deserialization mechanisms are often application-specific, making standardization in this context impractical.
 - Provide a set of predefined error subclasses for various scenarios. This responsibility lies with individual libraries or applications; the `BaseError` class is intended to be a general-purpose foundation.
 - Normalize stack traces or messages from native errors. Such normalization can introduce significant complexity, increase the bundle size of interface implementations, and is more effectively handled server-side during logging or reporting if required.
-
-## Guidance
-
-- The `BaseError` class must extend the native `Error` class.
-- `BaseError` must accept `message` and `cause` parameters, similar to the native `Error`.
-- `BaseError` must accept additional parameters, which can be strongly typed within its subclasses.
-- `BaseError` must accept an optional `fingerprint` string parameter for unique error instance identification.
-- `BaseError` must provide an `extend` method to facilitate the creation of error subclasses tailored to specific domains.
-- The `extend` method must accept a name and return a new class with the given name.
 
 ## TypeScript Definitions
 
@@ -127,11 +116,42 @@ interface BaseErrorConstructor<Additional = never> {
 }
 ```
 
+## Behavioral Requirements
+
+1. **Inheritance**: The `BaseError` class MUST extend the native JavaScript `Error` class, ensuring compatibility with existing error handling mechanisms and providing a stack trace.
+
+2. **Instance Properties**:
+    - `message`: Inherited from `Error`, a string describing the error.
+    - `name`: Inherited from `Error`, the name of the error class. For the base `BaseError` class, this MUST be `"BaseError"`. For classes created via the `extend()` method, this MUST be set to the `name` parameter passed to `extend()`.
+    - `stack`: Inherited from `Error`, the stack trace.
+    - `cause`: Inherited from `Error` (via `ErrorOptions`), an optional value representing the underlying cause of the error.
+    - `additional`: A readonly property containing strongly-typed metadata. Its type depends on the `Additional` type parameter:
+        - When `Additional` is `never`: The property MUST be `undefined` and cannot be set via constructor options.
+        - Otherwise: The property type MUST match the `Additional` type parameter.
+    - `fingerprint`: A readonly property of type `string | undefined`, providing a unique identifier for error grouping.
+
+3. **Constructor Signature**: The constructor signature MUST vary based on the `Additional` type parameter:
+    - When `Additional` is `never`: Both `message` and `options` parameters MUST be optional. The `additional` field MUST NOT be accepted in options.
+    - When `Additional` includes `undefined` (e.g., `string | undefined`): Both `message` and `options` parameters MUST be optional. The `additional` field in options MUST be optional.
+    - When `Additional` is a specific type (excluding `never` and not including `undefined`): The `message` parameter MUST be required (though it can be explicitly `undefined`), and `options` with a required `additional` field MUST be provided.
+
+4. **Constructor Options**: The constructor MUST accept an optional `options` parameter of type `BaseErrorOptions<T>`, which includes:
+    - `cause` (optional): Any value representing the underlying cause, inherited from `ErrorOptions`.
+    - `additional` (optional or required based on type parameter): Strongly-typed metadata specific to the error.
+    - `fingerprint` (optional): A string identifier for error grouping.
+
+5. **Static `extend()` Method**: The `BaseError` class MUST provide a static `extend()` method with the following behavior:
+    - Creates a new error class constructor that implements `BaseError`.
+    - The `name` parameter MUST be used to set the `name` property of error instances created by the returned constructor.
+    - When called without an explicit type parameter (e.g., `BaseError.extend("MyError")`): The new constructor MUST inherit the parent's `Additional` type. If the parent has `Additional = never`, the child MUST also have `Additional = never`.
+    - When called with an explicit type parameter (e.g., `BaseError.extend<string>("MyError")`): The new constructor MUST use the specified type as its `Additional` type, overriding the parent's type.
+    - The method MUST return a new `BaseErrorConstructor<T>` that can be used to instantiate errors and can itself be extended further via its own `extend()` method.
+
 ## Rationale
 
 ### Inheritance from the Native Error Class
 
-Extending the native `Error` class ensures that `BaseError` objects inherently include a stack trace, a critical component for debugging and pinpointing the origin of an error. This approach also allows existing JavaScript code to interact seamlessly with these custom errors, for example, by using `instanceof` checks or utility functions like `Error.isError()`.
+Extending the native `Error` class ensures that `BaseError` objects inherently include a stack trace, a critical component for debugging and pinpointing the origin of an error. This approach also allows existing JavaScript code to interact seamlessly with these custom errors, for example, by using `instanceof` checks.
 
 ### Creating Subclasses from BaseError
 
@@ -158,14 +178,86 @@ Using `fingerprint` allows for:
 
 ### Consuming the Interface in Libraries
 
-TODO: accept BaseErrorConstructor as configuration option
-TODO: consume BaseErrorConstructor via DI
+Libraries can accept a `BaseErrorConstructor` as a configuration option to allow consumers to provide their own error implementation:
+
+```typescript
+import type { BaseErrorConstructor } from "tsip";
+
+interface LibraryConfig {
+    BaseError: BaseErrorConstructor;
+}
+
+export function initLibrary(config: LibraryConfig) {
+    const BaseError = config.BaseError;
+    // Use BaseError to create errors in the library
+}
+```
+
+Libraries can also consume `BaseErrorConstructor` via `tsip/runtime` dependency injection container:
+
+```typescript
+import { runtime, BaseErrorToken } from "tsip/runtime";
+
+const BaseError = runtime.get(BaseErrorToken);
+const RequestError = BaseError.extend<{ url: string }>("RequestError");
+
+async function fetchData(url: string) {
+    try {
+        const response = await fetch(url);
+        return response.json();
+    } catch (error) {
+        throw new RequestError("Network error occurred", {
+            cause: error,
+            additional: { url },
+        });
+    }
+}
+```
+
+Libraries can also use the `BaseError` interface in their public API to accept TSIP-compatible errors.
+
+```typescript
+import type { BaseError } from "tsip";
+
+export function logError(error: BaseError) {
+    // ...
+}
+```
 
 ### Consuming the Interface in Application Code
 
-Applications can use an `BaseError` instance (obtained via dependency injection or direct instantiation) to handle errors.
+Applications can import a `BaseError` implementation directly from a compatible library:
 
 ```typescript
+import { BaseError } from "some-compatible-library";
+
+const AppError = BaseError.extend<Record<string, unknown>>("AppError");
+
+throw new AppError("Something happened", {
+    additional: { foo: "bar" },
+    fingerprint: "example",
+});
+```
+
+Alternatively, applications can use the `tsip/runtime` dependency injection container:
+
+```typescript
+import { runtime, BaseErrorToken } from "tsip/runtime";
+
+const BaseError = runtime.get(BaseErrorToken);
+const AppError = BaseError.extend<Record<string, unknown>>("AppError");
+
+throw new AppError("Something happened", {
+    additional: { foo: "bar" },
+    fingerprint: "example",
+});
+```
+
+Applications can handle errors using the `BaseError` interface:
+
+```typescript
+import type { BaseError } from "tsip";
+
 function handleError(error: BaseError) {
     console.error({
         name: error.name,
@@ -180,19 +272,10 @@ function handleError(error: BaseError) {
 }
 ```
 
-Applications can use an `BaseErrorConstructor` class to create errors.
-
-```typescript
-throw new BaseError("Something happened", {
-    additional: { foo: "bar" },
-    fingerprint: "example",
-});
-```
-
 ### Example: Creating Custom Error Subclasses
 
 ```typescript
-const UnexpectedError = BaseError.extend<undefined>("UnexpectedError");
+const UnexpectedError = BaseError.extend("UnexpectedError");
 
 interface NetworkErrorDetails {
     request: Request;
@@ -210,41 +293,9 @@ try {
     throw "Missing file path.";
 } catch (error) {
     // Normalized from a string to a `BaseError` instance
-    throw new BaseErrorImpl("Failed due to an unexpected issue.", {
+    throw new BaseError("Failed due to an unexpected issue.", {
         cause: error,
     });
-}
-```
-
-### Implementing the Interface
-
-Library authors can implement the `BaseError` interface as demonstrated in the example below. A library is free to introduce additional capabilities, provided they do not conflict with or alter the proposed behavior of `BaseError` and `BaseErrorContructor`.
-
-```typescript
-class BaseErrorImpl<T> extends Error implements BaseError<T> {
-    public readonly additional: T;
-    public readonly fingerprint: string | undefined;
-
-    constructor(message?: string | undefined, options?: BaseErrorOptions<T>) {
-        super(message, { cause: options?.cause });
-
-        this.name = "BaseError";
-        this.additional = options?.additional as T;
-        this.fingerprint = options?.fingerprint;
-
-        Object.setPrototypeOf(this, new.target.prototype);
-    }
-
-    public static extend<T>(name: string) {
-        const ErrorClass = class extends BaseErrorImpl<T> {
-            constructor(message?: string | undefined, options?: BaseErrorOptions<T>) {
-                super(message, options);
-                this.name = name;
-            }
-        };
-
-        return ErrorClass;
-    }
 }
 ```
 
@@ -258,8 +309,6 @@ class BaseErrorImpl<T> extends Error implements BaseError<T> {
 
 ## Unresolved Questions / Future Considerations
 
-- Should we provide utility functions for serialization/deserialization?
-- Should we standardize error codes or categories?
 - Should we support TypeScript targets older than ES2022? Supporting older targets would necessitate polyfilling the `cause` property for `Error` objects.
 
 ## Prior Art / References
@@ -267,18 +316,10 @@ class BaseErrorImpl<T> extends Error implements BaseError<T> {
 - [node-verror](https://github.com/joyent/node-verror)
 - [modern-errors](https://github.com/ehmicky/modern-errors)
 
-## Compatible Implementations / Projects Using This Interface
+## Compatible Implementations
 
 - None
 
 ## Projects Using This Interface
 
 - Information about usage is currently unknown.
-
-## Changelog
-
-All notable changes to this proposal will be documented in this section.
-
-### 2025-05-07
-
-- Initial draft
