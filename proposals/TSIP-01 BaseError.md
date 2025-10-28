@@ -42,13 +42,13 @@ The native `Error` class in JavaScript/TypeScript offers limited capabilities fo
 
 ```typescript
 /**
- * BaseError class instance with additional metadata
+ * A BaseError class instance with additional metadata.
  */
 interface BaseError<T = unknown> extends Error {
     /**
      * Contains additional structured, strongly-typed metadata associated with the error.
      */
-    readonly additional: T;
+    readonly additional: [T] extends [never] ? undefined : T;
 
     /**
      * An optional, unique identifier for this error instance.
@@ -60,9 +60,9 @@ interface BaseError<T = unknown> extends Error {
 }
 
 /**
- * Additional options passed to BaseError constructor
+ * Additional options passed to the BaseError constructor.
  */
-interface BaseErrorOptions<T> extends ErrorOptions {
+interface BaseErrorOptions<T = unknown> extends ErrorOptions {
     /**
      * Optional additional structured, strongly-typed metadata associated with the error.
      */
@@ -78,27 +78,52 @@ interface BaseErrorOptions<T> extends ErrorOptions {
 }
 
 /**
+ * BaseError options with a required `additional` property.
+ * This variant of `BaseErrorOptions` ensures that the `additional` metadata is mandatory.
+ * @typeParam T The type of the required `additional` metadata.
+ */
+type BaseErrorOptionsWithAdditional<T> = Omit<BaseErrorOptions<T>, "additional"> & {
+    /**
+     * Additional structured, strongly-typed metadata associated with the error.
+     */
+    additional: T;
+};
+
+/**
+ * Conditional type that determines the constructor arguments for BaseError based on the `Additional` type parameter.
+ * - If `Additional` is `never`, both `message` and `options` are optional.
+ * - If `Additional` is `undefined`, both `message` and `options` are optional.
+ * - Otherwise, `message` is required (or explicitly `undefined`) and `options` with a required `additional` property must be provided.
+ * @typeParam Additional The type of the `additional` metadata that affects the constructor signature.
+ */
+type BaseErrorConstructorArgs<Additional> = [Additional] extends [never]
+    ? [message?: string, options?: BaseErrorOptions<Additional>]
+    : [undefined] extends [Additional]
+      ? [message?: string, options?: BaseErrorOptions<Additional>]
+      : [message: string | undefined, options: BaseErrorOptionsWithAdditional<Additional>];
+
+/**
  * Defines the constructor for the BaseError class and its static `extend` method.
  * This interface ensures that any class implementing or representing `BaseError`
  * offers a consistent mechanism for instantiation and extension.
+ * @typeParam Additional The type of the `additional` metadata for this error constructor.
  */
-interface BaseErrorConstructor {
+interface BaseErrorConstructor<Additional = never> {
     /**
      * Creates an instance of BaseError.
-     * @typeParam T The type of the `additional` metadata.
-     * @param message A human-readable description of the error.
-     * @param options Additional options for the error, encompassing `cause`, `additional` metadata, and `fingerprint`.
+     * @param args Constructor arguments consisting of a message and optional options object.
+     *             The specific signature depends on the `Additional` type parameter.
      * @returns A new `BaseError` instance.
      */
-    new <T>(message?: string, options?: BaseErrorOptions<T>): BaseError<T>;
+    new (...args: BaseErrorConstructorArgs<Additional>): BaseError<Additional>;
 
     /**
      * Creates a new error class that implements `BaseError`, featuring a specific name and metadata type.
-     * @typeParam T The type definition for the `additional` metadata.
+     * @typeParam T The type definition for the `additional` metadata in the extended error class.
      * @param name The designated name for the new error class.
-     * @returns A new error class that implements `BaseError`.
+     * @returns A new error class constructor that implements `BaseError`.
      */
-    extend<T>(name: string): new (message: string, options?: BaseErrorOptions<T>) => BaseError<T>;
+    extend<T = Additional>(name: string): BaseErrorConstructor<T>;
 }
 ```
 
@@ -131,39 +156,12 @@ Using `fingerprint` allows for:
 
 ## Adoption Guide
 
-### Implementing the Interface
+### Consuming the Interface in Libraries
 
-Library authors can implement the `BaseError` interface as demonstrated in the example below. A library is free to introduce additional capabilities, provided they do not conflict with or alter the proposed behavior of `BaseError` and `BaseErrorContructor`.
+TODO: accept BaseErrorConstructor as configuration option
+TODO: consume BaseErrorConstructor via DI
 
-```typescript
-class BaseErrorImpl<T> extends Error implements BaseError<T> {
-    public readonly additional: T;
-    public readonly fingerprint: string | undefined;
-
-    constructor(message?: string | undefined, options?: BaseErrorOptions<T>) {
-        super(message, { cause: options?.cause });
-
-        this.name = "BaseError";
-        this.additional = options?.additional as T;
-        this.fingerprint = options?.fingerprint;
-
-        Object.setPrototypeOf(this, new.target.prototype);
-    }
-
-    public static extend<T>(name: string) {
-        const ErrorClass = class extends BaseErrorImpl<T> {
-            constructor(message?: string | undefined, options?: BaseErrorOptions<T>) {
-                super(message, options);
-                this.name = name;
-            }
-        };
-
-        return ErrorClass;
-    }
-}
-```
-
-### Consuming the Interface
+### Consuming the Interface in Application Code
 
 Applications can use an `BaseError` instance (obtained via dependency injection or direct instantiation) to handle errors.
 
@@ -218,6 +216,38 @@ try {
 }
 ```
 
+### Implementing the Interface
+
+Library authors can implement the `BaseError` interface as demonstrated in the example below. A library is free to introduce additional capabilities, provided they do not conflict with or alter the proposed behavior of `BaseError` and `BaseErrorContructor`.
+
+```typescript
+class BaseErrorImpl<T> extends Error implements BaseError<T> {
+    public readonly additional: T;
+    public readonly fingerprint: string | undefined;
+
+    constructor(message?: string | undefined, options?: BaseErrorOptions<T>) {
+        super(message, { cause: options?.cause });
+
+        this.name = "BaseError";
+        this.additional = options?.additional as T;
+        this.fingerprint = options?.fingerprint;
+
+        Object.setPrototypeOf(this, new.target.prototype);
+    }
+
+    public static extend<T>(name: string) {
+        const ErrorClass = class extends BaseErrorImpl<T> {
+            constructor(message?: string | undefined, options?: BaseErrorOptions<T>) {
+                super(message, options);
+                this.name = name;
+            }
+        };
+
+        return ErrorClass;
+    }
+}
+```
+
 ## FAQ (Frequently Asked Questions)
 
 - **Q: Why not just use the native Error class?**
@@ -243,7 +273,7 @@ try {
 
 ## Projects Using This Interface
 
-- None
+- Information about usage is currently unknown.
 
 ## Changelog
 
