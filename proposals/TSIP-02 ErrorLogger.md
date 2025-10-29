@@ -1,10 +1,8 @@
 # TSIP-02: ErrorLogger Interface Proposal
 
-- **Status**: `draft` (Initial idea, under discussion)
+- **Status**: `preview`
 - **Authors**:
     - [Maksim Zemskov](https://github.com/nodge)
-- **Created**: 2025-05-09
-- **Updated**: 2025-05-09
 
 ## Abstract
 
@@ -38,86 +36,137 @@ A standardized `ErrorLogger` interface addresses these issues by providing a cle
 - Dictate the format of the logged output. The logger implementation decides this.
 - Provide mechanisms for log filtering or routing; these are concerns of the logging implementation.
 
-## Guidance
-
-The `ErrorLogger` interface defines a set of methods for logging errors at different severity levels. Each method accepts a single argument: an instance of the `Error` class (or its subclasses). This ensures that essential information like the error message and stack trace is consistently available for logging.
-
-- `info(error: Error): void;`: Logs informational errors. These are typically errors that do not disrupt the application's normal flow but are worth noting.
-- `warn(error: Error): void;`: Logs warning errors. These indicate potential problems or unexpected situations that are not critical but might lead to issues if not addressed.
-- `error(error: Error): void;`: Logs general errors. These are typically runtime errors that disrupt a specific operation but may not halt the entire application.
-- `fatal(error: Error): void;`: Logs fatal errors. These are critical errors that usually precede an application shutdown or an unrecoverable state.
-
-The logging methods are synchronous (`void` return type). While the underlying logging mechanism (e.g., sending data to a remote service) might be asynchronous, the interface itself does not return a `Promise`.
-
 ## TypeScript Definitions
 
 ```typescript
 /**
  * A standard interface for logging error instances.
  */
-interface ErrorLogger {
+export interface ErrorLogger {
     /**
      * Logs an informational error.
      * These are typically errors that do not disrupt the application's normal flow but are worth noting.
+     * @typeParam T The type of the error
      * @param error The error instance to log.
      */
-    info(error: Error): void;
+    info<T>(error: [unknown] extends [T] ? T : Error): void;
 
     /**
      * Logs a warning error.
      * These indicate potential problems or unexpected situations that are not critical
      * but might lead to issues if not addressed.
+     * @typeParam T The type of the error
      * @param error The error instance to log.
      */
-    warn(error: Error): void;
+    warn<T>(error: [unknown] extends [T] ? T : Error): void;
 
     /**
      * Logs a general error.
      * These are typically runtime errors that disrupt a specific operation
      * but may not halt the entire application.
+     * @typeParam T The type of the error
      * @param error The error instance to log.
      */
-    error(error: Error): void;
+    error<T>(error: [unknown] extends [T] ? T : Error): void;
 
     /**
      * Logs a fatal error.
      * These are critical errors that usually precede an application shutdown or an unrecoverable state.
      * It is intended to be logged just before the process exits or browser tab shows error screen.
+     * @typeParam T The type of the error
      * @param error The error instance to log.
      */
-    fatal(error: Error): void;
+    fatal<T>(error: [unknown] extends [T] ? T : Error): void;
 }
 ```
 
+## Behavioral Requirements
+
+1. **Method Signatures**: Each logging method (info, warn, error, fatal) MUST be generic with a type parameter `T` and accept exactly one parameter with the conditional type `[unknown] extends [T] ? T : Error`, returning `void`.
+
+2. **Type Parameter Behavior**:
+    - When called without an explicit type parameter (e.g., `errorLogger.error(err)`), the type defaults to `Error`, requiring callers to pass an `Error` instance.
+    - When called with an explicit `unknown` type parameter (e.g., `errorLogger.error<unknown>(err)`), the method accepts any value type.
+
+3. **Synchronous Execution**: All logging methods MUST be synchronous. They MUST NOT return a `Promise`. While the underlying logging mechanism (e.g., sending data to a remote service) might be asynchronous, the interface itself does not return a `Promise`. Any asynchronous operations MUST be handled internally by the implementation without blocking the caller.
+
+4. **Error Handling**: Implementations SHOULD handle failures gracefully and MUST NOT throw errors during logging operations. If logging fails, the implementation MAY log to a fallback mechanism (e.g., console) but MUST NOT interrupt the application flow.
+
+5. **Type Handling**: When receiving values via the `<unknown>` type parameter, implementations MUST handle any value type. While `Error` instances are the expected input, implementations MUST handle other types (strings, objects, primitives) in a reasonable manner, making a best-effort attempt to extract meaningful information.
+
 ## Rationale
 
-### Parameter Type (`Error` instance only)
+### Exclusion of `debug()`, `log()`, and `trace()` Methods
 
-Accepting only `Error` instances ensures that a stack trace is available for every logged error. Stack traces are crucial for debugging and identifying the source of an error. Accepting `unknown[]` arguments (like `console.*` methods) would complicate standardized logging and make it harder to guarantee the presence of essential diagnostic information for monitoring systems.
+The `ErrorLogger` interface intentionally excludes `debug()`, `log()`, `trace()`, and similar methods commonly found in general-purpose logging frameworks. These methods are semantically unrelated to error logging:
 
-Allowing `unknown` or `any` as input would shift the burden of ensuring an `Error` object and extracting a stack trace to the logger implementation, potentially leading to inconsistencies.
+- `debug()`, `log()`, and `trace()` are typically used for tracing application flow, outputting variable values, or recording general application events. They don't represent error severity levels.
+- Including such methods would conflate error reporting with general application logging, diluting the focused purpose of the `ErrorLogger` interface.
+- Error monitoring systems (like Sentry, Rollbar, etc.) are specifically designed to capture and analyze errors, not general debug logs. Mixing these concerns would complicate integration with such systems.
 
-### Handling `unknown` errors at catch sites
+If you need general-purpose logging, use a separate logging interface or library designed for that purpose. The `ErrorLogger` maintains a clear, singular responsibility: reporting errors at appropriate severity levels.
 
-In `catch` blocks, the caught error is typed as `unknown`. It's not recommended to blindly cast this to `Error` because the actual thrown value might not be an `Error` instance. Instead, developers should either:
+### Parameter Type: Generic with Conditional Default
 
-1. Wrap the caught value in a new `Error` (or `BaseError`) instance, passing the original as the `cause`.
-2. Check the type using `instanceof Error` (or a similar reliable type guard) before logging, and create a new `Error` if necessary.
+The `ErrorLogger` interface uses a generic type parameter with a conditional type `[unknown] extends [T] ? T : Error` for all logging methods. This design balances type safety with practical flexibility.
 
-This promotes robust error handling and ensures the `ErrorLogger` always receives a valid `Error` object.
+```typescript
+error<T>(error: [unknown] extends [T] ? T : Error): void;
+```
+
+This conditional type evaluates as follows:
+
+- If `T` is not explicitly provided or is inferred from context, it defaults to requiring an `Error` instance
+- If `T` is explicitly set or is inferred to `unknown`, it accepts any value type
+
+This creates a "strict by default, flexible when needed" behavior:
+
+1. **Strict by Default**: Without explicit type parameters, the interface requires `Error` instances, encouraging best practices and ensuring stack traces are available.
+
+```typescript
+// Requires Error instance by default
+errorLogger.error(new Error("Failed"));
+
+// Type error - string not assignable to Error
+errorLogger.error("something went wrong");
+```
+
+2. **Flexibility When Needed**: In scenarios where the error type is unknown (like `catch` blocks), values can be passed directly without explicit type casts or type guards:
+
+```typescript
+try {
+    // ... code ...
+} catch (err: unknown) {
+    // Allow unknown types when needed
+    errorLogger.error(err);
+}
+```
+
+#### Implementation Responsibility
+
+Logger implementations must handle values on a best-effort basis, regardless of how they were passed:
+
+- When receiving an `Error` instance (the default), extract its message, stack trace, and properties.
+- When receiving a value via `<unknown>` type parameter, handle any type intelligently:
+    - If it's an `Error` instance, treat it as above
+    - If it's a string or object, or any other value, wrap or format appropriately
+    - Always attempt to capture a stack trace when possible
+
+This design provides the best of both worlds: strong typing that catches mistakes at compile time, with an escape hatch for the genuinely ambiguous cases in JavaScript error handling.
 
 ### Separation of Concerns (`ErrorLogger` vs. `BaseError`)
 
 The design of `ErrorLogger` deliberately separates the responsibilities of error handling into distinct stages to promote clarity and maintainability. Error creation and the addition of specific contextual details are best handled within the application code, precisely where an error originates. This is where an error instance, such as one derived from `BaseError` (as proposed in [TSIP-01](./TSIP-01%20BaseError.md)), takes on the role of a data container, collecting and storing all relevant information pertinent to that specific error event.
 
-Once an error object is populated, the `ErrorLogger` interface comes into play. Its sole responsibility is to act as a transporter, moving this error object from the application to various designated reporting destinations, which could include the console, a centralized monitoring system like Sentry, or a tracing service. This separation ensures that the `ErrorLogger` itself does not need to understand the intricate details of every possible error type. While an `ErrorLogger` implementation can (and often should) enrich the error data with broader environment-specific or application-wide metadata (such as a `userId`, `requestId`, or session information), it remains agnostic to the intrinsic details of the error it is logging. This division keeps the logger's role focused and allows application code to manage error specifics, leading to a more modular and robust error management strategy.
+Once an error object is populated, the `ErrorLogger` interface comes into play. Its sole responsibility is to act as a transporter, moving this error object from the application to various designated reporting destinations, which could include the console, a centralized monitoring system like Sentry, or a tracing service.
+
+This separation ensures that the `ErrorLogger` itself does not need to understand the intricate details of every possible error type. While an `ErrorLogger` implementation can (and often should) enrich the error data with broader environment-specific or application-wide metadata (such as a `userId`, `requestId`, or session information), it remains agnostic to the intrinsic details of the error it is logging.
 
 Flow:
 
 1. Application code creates an error (ideally a `BaseError` subclass) and attaches contextual data.
 2. The error is passed to an `ErrorLogger` implementation. Manually or via centralized error handler.
 3. The logger processes and transmits the error (e.g., to Sentry, console).
-4. Additional metadata related to execution environment can be provided via `ErrorLogger` implementations.
 
 ```mermaid
 graph TD
@@ -129,10 +178,6 @@ graph TD
     C -- Transports to --> F[Other Destinations];
 ```
 
-### Exclusion of `debug`, `log`, `trace` methods
-
-The `ErrorLogger` interface is specifically focused on logging _errors_, particularly for integration with monitoring systems. Methods like `debug`, `log`, and `trace` typically have different semantics and are used for logging debugging information, application events, or other non-error data. Including them would dilute the purpose of `ErrorLogger`. A separate specific logger interface could be defined for those needs.
-
 ### Synchronous Logging Methods
 
 Although logging to external systems (like monitoring services) often involves I/O operations and is inherently asynchronous, the `ErrorLogger` methods are defined as synchronous (returning `void`). This is intentional to prevent logging operations from blocking or delaying the application's primary business logic. The logger implementation is responsible for managing any asynchronous operations internally (e.g., using a queue, fire-and-forget).
@@ -141,32 +186,65 @@ Returning `Promise<void>` would require `await` at every logging call site, pote
 
 ## Adoption Guide
 
-### Implementing the Interface
+### Consuming the Interface in Libraries
 
-Library authors can implement the `ErrorLogger` interface as demonstrated in the example below. A library is free to introduce additional capabilities, provided they do not conflict with or alter the proposed behavior of `ErrorLogger`.
+Libraries can accept a `ErrorLogger` as a configuration option to allow consumers to provide their own logger implementation:
 
 ```typescript
-const errorLogger: ErrorLogger = {
-    info: (err) => console.info(err),
-    warn: (err) => console.warn(err),
-    error: (err) => console.error(err),
-    fatal: (err) => console.error(err),
-};
+import type { ErrorLogger } from "tsip";
+
+interface LibraryConfig {
+    errorLogger: ErrorLogger;
+}
+
+export function initLibrary(config: LibraryConfig) {
+    const errorLogger = config.errorLogger;
+    // Use errorLogger to log errors in the library
+}
 ```
 
-### Consuming the Interface
-
-Applications can use an `ErrorLogger` instance (obtained via dependency injection or direct instantiation) to log errors.
+Libraries can also consume `ErrorLogger` via `tsip/runtime` dependency injection container:
 
 ```typescript
+import { runtime, ErrorLoggerToken } from "tsip/runtime";
+
+const errorLogger = runtime.get(ErrorLoggerToken);
+
+async function fetchData(url: string) {
+    try {
+        const response = await fetch(url);
+        return response.json();
+    } catch (error) {
+        errorLogger.error(error);
+    }
+}
+```
+
+### Consuming the Interface in Application Code
+
+Applications can import a `ErrorLogger` implementation directly from a compatible library:
+
+```typescript
+import { errorLogger } from "some-compatible-library";
+
 try {
     // ... application logic ...
 } catch (err) {
-    // Ensure 'err' is an Error instance before logging
-    const normalizedError = err instanceof Error ? err : new Error("Unknown error", { cause: err });
+    errorLogger.error(err);
+}
+```
 
-    // Log error with ERROR severity
-    errorLogger.error(normalizedError);
+Alternatively, applications can use the `tsip/runtime` dependency injection container:
+
+```typescript
+import { runtime, ErrorLoggerToken } from "tsip/runtime";
+
+const errorLogger = runtime.get(ErrorLoggerToken);
+
+try {
+    // ... application logic ...
+} catch (err) {
+    errorLogger.error(err);
 }
 ```
 
@@ -183,23 +261,36 @@ try {
 
 ## Unresolved Questions / Future Considerations
 
-- Should there be a way additional metadata alongside the error instance?
+- None
 
 ## Prior Art / References
 
 - Common logging libraries in JavaScript/Node.js (e.g., Winston, Pino, Bunyan) often provide similar leveled logging but with more extensive configuration and features beyond just error reporting.
 - Sentry SDK, LogRocket, and other monitoring tools provide client-side error capturing mechanisms.
 
-## Compatible Implementations / Projects Using This Interface
+## Compatible Implementations
 
-- TODO: evaluate the existing libraries
+Many existing logging libraries provide implementations that are compatible with the `ErrorLogger` interface out of the box or with minimal adapters. Compatibility typically requires aliasing method names or wrapping existing logger methods to match the interface signature.
+
+The following libraries provide methods that directly match `ErrorLogger` interface:
+
+- **[pino](https://www.npmjs.com/package/pino)**
+- **[bunyan](https://www.npmjs.com/package/bunyan)**
+
+The following libraries require minimal method aliasing to conform to the interface:
+
+- **Browser/Node.js Console** - Native console object. Requires aliasing:
+    - `fatal()` → `console.error()`
+- **[@sentry/browser](https://www.npmjs.com/package/@sentry/browser) / [@sentry/node](https://www.npmjs.com/package/@sentry/node)** - Requires wrapping all methods:
+    - `info()` → `Sentry.captureException(err, { level: 'info' })`
+    - `warn()` → `Sentry.captureException(err, { level: 'warning' })`
+    - `error()` → `Sentry.captureException(err, { level: 'error' })`
+    - `fatal()` → `Sentry.captureException(err, { level: 'fatal' })`
+- **[winston](https://www.npmjs.com/package/winston)** - Requires aliasing:
+    - `fatal()` → `winston.crit()`
+- **[NestJS Logger](https://docs.nestjs.com/techniques/logger#using-the-logger-for-application-logging)** - Requires aliasing:
+    - `info()` → `logger.log()`
 
 ## Projects Using This Interface
 
-- None
-
-## Changelog
-
-### 2025-05-09
-
-- Initial draft
+- Information about usage is currently unknown.
