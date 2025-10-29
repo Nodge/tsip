@@ -1,5 +1,16 @@
 # @tsip/types
 
+## 0.6.0
+
+### Minor Changes
+
+- [#15](https://github.com/Nodge/tsip/pull/15) [`a3ffa1c`](https://github.com/Nodge/tsip/commit/a3ffa1c5c7a2b0e039523673206402576b389f11) Thanks [@Nodge](https://github.com/Nodge)! - Add types for ErrorLogger interface (TSIP-02)
+
+  This release introduces the `ErrorLogger` interface, a TypeScript interface for error logging across applications and libraries. The interface defines four severity-based logging methods (`info`, `warn`, `error`, `fatal`) that accept error instances and provide a consistent contract for reporting errors to various destinations such as the console, monitoring systems, or tracing services.
+
+  **Exported types:**
+  - `ErrorLogger` - Interface with logging methods
+
 ## 0.5.0
 
 ### Minor Changes
